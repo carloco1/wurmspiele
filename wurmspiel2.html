@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Da ist der Wurm drin!</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #e8f5e9;
+      font-family: 'Comic Sans MS', 'Chalkboard SE', cursive, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      color: #2e7d32;
+      text-shadow: 2px 3px 0 #a5d6a7;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    /* ── Setup ─────────────────────────────────────────────────── */
+    #setup {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 40px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    #setup h2 { font-size: 1.5rem; color: #388e3c; margin-bottom: 20px; }
+    .nbtn {
+      display: inline-block;
+      width: 80px; height: 80px;
+      margin: 8px;
+      border-radius: 16px;
+      border: 3px solid #c8e6c9;
+      font-size: 2.2rem; font-weight: bold; font-family: inherit;
+      background: #f1f8e9; color: #33691e;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .nbtn:hover { background: #c8e6c9; border-color: #388e3c; transform: scale(1.1); }
+
+    /* ── Game ──────────────────────────────────────────────────── */
+    #game { display: none; width: 100%; max-width: 1100px; }
+
+    #tunnel-wrap {
+      background: #4e342e;
+      border-radius: 16px;
+      padding: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+    }
+    #tunnel { display: block; }
+
+    #controls {
+      background: white;
+      border-radius: 16px;
+      padding: 20px 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #turn-badge {
+      font-size: 1.2rem; font-weight: bold;
+      padding: 12px 20px;
+      border-radius: 12px;
+      min-width: 185px;
+      text-align: center;
+      border: 2px solid transparent;
+    }
+
+    /* ── Die ───────────────────────────────────────────────────── */
+    #die-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #die-canvas {
+      border-radius: 20px;
+      cursor: default;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      transition: box-shadow 0.3s;
+    }
+
+    #die-label {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #888;
+      min-height: 1.2em;
+      text-align: center;
+    }
+
+    @keyframes diespin {
+      0%   { transform: perspective(350px) rotateX(0deg)   rotateY(0deg)   rotateZ(0deg); }
+      33%  { transform: perspective(350px) rotateX(120deg) rotateY(180deg) rotateZ(60deg); }
+      66%  { transform: perspective(350px) rotateX(240deg) rotateY(360deg) rotateZ(120deg); }
+      100% { transform: perspective(350px) rotateX(360deg) rotateY(540deg) rotateZ(180deg); }
+    }
+    #die-canvas.rolling {
+      animation: diespin 0.35s linear infinite;
+    }
+
+    @keyframes dieland {
+      0%   { transform: perspective(350px) rotateX(-30deg) rotateY(25deg) scale(1.3); }
+      55%  { transform: perspective(350px) rotateX(6deg)  rotateY(-6deg) scale(0.92); }
+      78%  { transform: perspective(350px) rotateX(-3deg) rotateY(3deg)  scale(1.04); }
+      100% { transform: perspective(350px) rotateX(0deg)  rotateY(0deg)  scale(1); }
+    }
+    #die-canvas.landed {
+      animation: dieland 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* ── Buttons ───────────────────────────────────────────────── */
+    #roll-btn {
+      padding: 16px 36px;
+      font-size: 1.35rem; font-family: inherit; font-weight: bold;
+      background: #66bb6a; color: white;
+      border: none; border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #388e3c;
+      transition: all 0.1s;
+    }
+    #roll-btn:active  { transform: translateY(5px); box-shadow: 0 1px 0 #388e3c; }
+    #roll-btn:disabled { background: #bdbdbd; box-shadow: 0 6px 0 #9e9e9e; cursor: default; }
+
+    #msg { font-size: 1.05rem; color: #555; min-width: 180px; text-align: center; }
+
+    /* ── Game over ─────────────────────────────────────────────── */
+    #gameover {
+      display: none;
+      background: white;
+      border-radius: 20px;
+      padding: 36px 52px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      text-align: center;
+      max-width: 480px;
+    }
+    #gameover h2 { font-size: 2.2rem; margin-bottom: 16px; }
+    .score-row   { padding: 8px 0; font-size: 1.15rem; }
+    .replay-btn  {
+      margin-top: 22px;
+      padding: 13px 30px;
+      font-size: 1.15rem; font-family: inherit; font-weight: bold;
+      background: #66bb6a; color: white;
+      border: none; border-radius: 12px; cursor: pointer;
+    }
+    .replay-btn:hover { background: #81c784; }
+  </style>
+</head>
+<body>
+
+<h1>🐛 Da ist der Wurm drin!</h1>
+
+<!-- Setup -->
+<div id="setup">
+  <h2>Wie viele Spieler?</h2>
+  <button class="nbtn" data-n="2">2</button>
+  <button class="nbtn" data-n="3">3</button>
+  <button class="nbtn" data-n="4">4</button>
+</div>
+
+<!-- Game -->
+<div id="game">
+  <div id="tunnel-wrap">
+    <canvas id="tunnel"></canvas>
+  </div>
+  <div id="controls">
+    <div id="turn-badge">—</div>
+    <div id="die-wrap">
+      <canvas id="die-canvas" width="108" height="108"></canvas>
+      <div id="die-label"></div>
+    </div>
+    <button id="roll-btn">Würfeln!</button>
+    <div id="msg"></div>
+  </div>
+</div>
+
+<!-- Game over -->
+<div id="gameover">
+  <h2 id="winner-text"></h2>
+  <div id="score-list"></div>
+  <button class="replay-btn" onclick="location.reload()">Nochmal spielen 🔄</button>
+</div>
+
+<script>
+// ── Segment die (6 Farben = 6 Werte) ────────────────────────────────────────
+const SEGS = [
+  { color: '#80d8ff', dark: '#0277bd', label: 'Blau',   val: 1 },
+  { color: '#b9f6ca', dark: '#1b5e20', label: 'Grün',   val: 2 },
+  { color: '#fff59d', dark: '#e65100', label: 'Gelb',   val: 3 },
+  { color: '#ffccbc', dark: '#bf360c', label: 'Orange', val: 4 },
+  { color: '#e1bee7', dark: '#6a1b9a', label: 'Lila',   val: 5 },
+  { color: '#ffcdd2', dark: '#b71c1c', label: 'Rot',    val: 6 },
+];
+
+// ── Worm player definitions ──────────────────────────────────────────────────
+const WORM_DEF = [
+  { name: 'Gelber Wurm', head: '#f9a825', body: '#ffd54f', dark: '#e65100' },
+  { name: 'Blauer Wurm', head: '#1e88e5', body: '#64b5f6', dark: '#0d47a1' },
+  { name: 'Pinker Wurm', head: '#d81b60', body: '#f48fb1', dark: '#880e4f' },
+  { name: 'Grüner Wurm', head: '#388e3c', body: '#81c784', dark: '#1b5e20' },
+];
+
+// ── Track constants ──────────────────────────────────────────────────────────
+const FINISH = 50;          // Komposthaufen
+const OBS1   = 17;          // 🌼 Gänseblümchen (zuerst)
+const OBS2   = 33;          // 🍓 Erdbeere (danach)
+const LANE_H = 84;          // Pixel pro Fahrspul (1.5× original)
+const L_PAD  = 80;          // Linker Rand für Namen
+const R_PAD  = 40;
+
+// ── State ────────────────────────────────────────────────────────────────────
+let players = [], numPlayers, currentPlayer, rolling, phase, finalRoundEnd;
+
+function initState(n) {
+  numPlayers    = n;
+  currentPlayer = 0;
+  rolling       = false;
+  phase         = 'playing';
+  finalRoundEnd = -1;
+  players = WORM_DEF.slice(0, n).map(d => ({ ...d, segments: [], position: 0 }));
+}
+
+// ── Tunnel-Canvas ────────────────────────────────────────────────────────────
+let canvas, ctx, scale;
+
+function setupCanvas() {
+  canvas = document.getElementById('tunnel');
+  ctx    = canvas.getContext('2d');
+  resize();
+  window.addEventListener('resize', () => { resize(); draw(); });
+}
+
+function resize() {
+  const wrap = document.getElementById('tunnel-wrap');
+  const cw   = wrap.clientWidth - 20;
+  canvas.width  = cw;
+  canvas.height = numPlayers * LANE_H + 28;
+  scale = (cw - L_PAD - R_PAD) / FINISH;
+}
+
+function px(pos) { return L_PAD + pos * scale; }
+
+// ── Tunnel zeichnen ──────────────────────────────────────────────────────────
+function draw() {
+  if (!ctx) return;
+  const W = canvas.width, H = canvas.height;
+
+  ctx.fillStyle = '#3e2723';
+  rrFill(ctx, 0, 0, W, H, 10);
+
+  // Horizontale Erdschicht-Textur
+  ctx.strokeStyle = 'rgba(255,255,255,0.022)';
+  ctx.lineWidth = 1;
+  for (let y = 7; y < H; y += 5) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Sichtfenster – zuerst Gänseblümchen, dann Erdbeere
+  drawObsWindow(OBS1, '🌼');
+  drawObsWindow(OBS2, '🍓');
+
+  // Ziellinie
+  ctx.save();
+  ctx.strokeStyle = '#ffe082';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 5]);
+  const fx = px(FINISH);
+  ctx.beginPath(); ctx.moveTo(fx, 0); ctx.lineTo(fx, H); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  ctx.font = `${Math.round(LANE_H * 0.2)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe082';
+  ctx.fillText('♻️', fx, H - 5);
+
+  players.forEach((p, i) => drawWorm(p, i));
+}
+
+function drawObsWindow(pos, emoji) {
+  const wx  = px(pos);
+  const ww  = Math.round(LANE_H * 0.34);
+  const pad = 10;
+  const H   = canvas.height;
+
+  const grd = ctx.createLinearGradient(wx - ww * 1.5, 0, wx + ww * 1.5, 0);
+  grd.addColorStop(0,   'rgba(255,255,200,0)');
+  grd.addColorStop(0.5, 'rgba(255,255,200,0.1)');
+  grd.addColorStop(1,   'rgba(255,255,200,0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(wx - ww * 1.5, 0, ww * 3, H);
+
+  ctx.fillStyle = '#6d4c41';
+  rrFill(ctx, wx - ww/2 - 3, pad, ww + 6, H - pad * 2, 5);
+  ctx.fillStyle = '#dcedc8';
+  rrFill(ctx, wx - ww/2, pad + 3, ww, H - pad * 2 - 6, 4);
+
+  ctx.font = `${Math.round(LANE_H * 0.22)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(emoji, wx, pad + Math.round(LANE_H * 0.23));
+}
+
+function drawWorm(player, idx) {
+  const y0   = idx * LANE_H + 12;
+  const segH = LANE_H - 24;
+  let   curX = px(0);
+
+  player.segments.forEach((seg, si) => {
+    const sw = seg.val * scale;
+    ctx.fillStyle = si % 2 === 0 ? player.body : lighten(player.body, 18);
+    rrFill(ctx, curX, y0, sw, segH, 5);
+    ctx.fillStyle = seg.color + 'bb';
+    rrFill(ctx, curX + 2, y0 + segH - 8, sw - 4, 6, 3);
+    curX += sw;
+  });
+
+  if (player.segments.length === 0) {
+    ctx.fillStyle = player.body + '55';
+    rrFill(ctx, px(0) - 6, y0, 6, segH, 3);
+  }
+
+  const r  = segH / 2 + 4;
+  const hx = curX + r * 0.6;
+  const hy = y0 + segH / 2;
+
+  if (players[currentPlayer] === player && phase !== 'over') {
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.beginPath(); ctx.arc(hx, hy, r + 8, 0, Math.PI * 2); ctx.fill();
+  }
+
+  ctx.fillStyle = player.head;
+  ctx.beginPath(); ctx.arc(hx, hy, r, 0, Math.PI * 2); ctx.fill();
+
+  [[hx + r * 0.55, hy - r * 0.38], [hx + r * 0.55, hy + r * 0.38]].forEach(([ex, ey]) => {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(ex, ey, r * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(ex + 1, ey, r * 0.15, 0, Math.PI * 2); ctx.fill();
+  });
+
+  const fs = Math.max(11, Math.min(16, segH * 0.42));
+  ctx.fillStyle = player.head;
+  ctx.font = `bold ${fs}px Comic Sans MS, sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(player.name.split(' ')[0], L_PAD - 8, y0 + segH / 2);
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ── Würfel zeichnen (Canvas mit Augen) ───────────────────────────────────────
+const dieCanvas = document.getElementById('die-canvas');
+const dieCtx    = dieCanvas.getContext('2d');
+
+// Pip-Positionen für 1–6 (normiert auf 0–1, werden auf Canvas-Größe skaliert)
+const PIP_POS = {
+  1: [[0.5, 0.5]],
+  2: [[0.72, 0.28], [0.28, 0.72]],
+  3: [[0.72, 0.28], [0.5, 0.5], [0.28, 0.72]],
+  4: [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]],
+  5: [[0.28, 0.28], [0.72, 0.28], [0.5, 0.5], [0.28, 0.72], [0.72, 0.72]],
+  6: [[0.28, 0.28], [0.72, 0.28], [0.28, 0.5], [0.72, 0.5], [0.28, 0.72], [0.72, 0.72]],
+};
+
+function drawDieFace(seg) {
+  const S = dieCanvas.width;
+  dieCtx.clearRect(0, 0, S, S);
+
+  // Hintergrund-Gradient
+  const grd = dieCtx.createLinearGradient(0, 0, S, S);
+  if (seg) {
+    grd.addColorStop(0, lighten(seg.color, 28));
+    grd.addColorStop(1, seg.color);
+  } else {
+    grd.addColorStop(0, '#f5f5f5');
+    grd.addColorStop(1, '#e0e0e0');
+  }
+  dieCtx.fillStyle = grd;
+  rrFill(dieCtx, 4, 4, S - 8, S - 8, 17);
+
+  // Rahmen
+  dieCtx.strokeStyle = seg ? seg.dark + '55' : '#bbb';
+  dieCtx.lineWidth = 2.5;
+  rrStroke(dieCtx, 4, 4, S - 8, S - 8, 17);
+
+  // Inneres Licht-Glanzpunkt
+  dieCtx.fillStyle = 'rgba(255,255,255,0.35)';
+  rrFill(dieCtx, 10, 10, S * 0.45, S * 0.22, 8);
+
+  if (!seg) {
+    dieCtx.fillStyle = '#aaa';
+    dieCtx.font = `bold ${Math.round(S * 0.46)}px sans-serif`;
+    dieCtx.textAlign = 'center';
+    dieCtx.textBaseline = 'middle';
+    dieCtx.fillText('?', S / 2, S / 2 + 2);
+    dieCtx.textBaseline = 'alphabetic';
+    return;
+  }
+
+  // Pips (Augen)
+  const pipR = S * 0.088;
+  dieCtx.fillStyle = seg.dark;
+  (PIP_POS[seg.val] || []).forEach(([fx, fy]) => {
+    dieCtx.beginPath();
+    dieCtx.arc(fx * S, fy * S, pipR, 0, Math.PI * 2);
+    dieCtx.fill();
+    // kleiner Glanzpunkt auf dem Pip
+    dieCtx.fillStyle = 'rgba(255,255,255,0.3)';
+    dieCtx.beginPath();
+    dieCtx.arc(fx * S - pipR * 0.3, fy * S - pipR * 0.3, pipR * 0.4, 0, Math.PI * 2);
+    dieCtx.fill();
+    dieCtx.fillStyle = seg.dark;
+  });
+}
+
+function setDie(seg, glow) {
+  drawDieFace(seg);
+  const label = document.getElementById('die-label');
+  if (seg) {
+    label.textContent = `${seg.label}  +${seg.val}`;
+    label.style.color = seg.dark;
+  } else {
+    label.textContent = '';
+  }
+  dieCanvas.style.boxShadow = glow && seg
+    ? `0 0 22px ${seg.color}, 0 0 44px ${seg.color}77, 0 4px 14px rgba(0,0,0,0.4)`
+    : '0 3px 10px rgba(0,0,0,0.2)';
+}
+
+// ── UI ───────────────────────────────────────────────────────────────────────
+function refreshBadge() {
+  const p = players[currentPlayer];
+  const b = document.getElementById('turn-badge');
+  b.textContent       = p.name + ' ist dran';
+  b.style.background  = p.head + '28';
+  b.style.color       = p.dark;
+  b.style.borderColor = p.head;
+  document.getElementById('msg').textContent = '';
+}
+
+// ── Würfeln ──────────────────────────────────────────────────────────────────
+document.getElementById('roll-btn').addEventListener('click', doRoll);
+
+function doRoll() {
+  if (rolling || phase === 'over') return;
+  rolling = true;
+  document.getElementById('roll-btn').disabled = true;
+  document.getElementById('msg').textContent   = '';
+
+  const result = Math.floor(Math.random() * 6);
+  let   ticks  = 0;
+
+  dieCanvas.classList.remove('landed');
+  void dieCanvas.offsetWidth; // reflow
+  dieCanvas.classList.add('rolling');
+  dieCanvas.style.boxShadow = '0 3px 10px rgba(0,0,0,0.2)';
+
+  const iv = setInterval(() => {
+    drawDieFace(SEGS[Math.floor(Math.random() * 6)]);
+    if (++ticks >= 18) {
+      clearInterval(iv);
+      dieCanvas.classList.remove('rolling');
+      void dieCanvas.offsetWidth;
+      dieCanvas.classList.add('landed');
+      setDie(SEGS[result], true);
+      applyRoll(result);
+    }
+  }, 60);
+}
+
+function applyRoll(idx) {
+  const seg = SEGS[idx];
+  const p   = players[currentPlayer];
+  p.segments.push({ ...seg });
+  p.position += seg.val;
+
+  const obs = p.position >= OBS2 ? '🍓 ' : p.position >= OBS1 ? '🌼 ' : '';
+  document.getElementById('msg').textContent =
+    `${obs}+${seg.val} (${seg.label}) → Pos. ${p.position}`;
+
+  draw();
+
+  if (p.position >= FINISH && phase === 'playing') {
+    phase         = 'final-round';
+    finalRoundEnd = (currentPlayer + numPlayers - 1) % numPlayers;
+  }
+
+  setTimeout(() => { rolling = false; advance(); }, 950);
+}
+
+function advance() {
+  if (phase === 'final-round' && currentPlayer === finalRoundEnd) {
+    endGame(); return;
+  }
+  currentPlayer = (currentPlayer + 1) % numPlayers;
+  document.getElementById('roll-btn').disabled = false;
+  refreshBadge();
+  draw();
+}
+
+function endGame() {
+  phase = 'over';
+  draw();
+
+  const sorted = [...players].sort((a, b) => b.position - a.position);
+  const winner = sorted[0];
+
+  document.getElementById('game').style.display     = 'none';
+  document.getElementById('gameover').style.display = 'flex';
+  document.getElementById('gameover').style.flexDirection = 'column';
+  document.getElementById('gameover').style.alignItems    = 'center';
+
+  document.getElementById('winner-text').innerHTML =
+    `<span style="color:${winner.head}">🐛 ${winner.name} gewinnt!</span>`;
+  document.getElementById('score-list').innerHTML =
+    sorted.map((p, i) =>
+      `<div class="score-row" style="color:${p.dark};font-weight:${i===0?'bold':'normal'}">
+        ${i+1}. ${p.name}: ${p.position} Felder
+      </div>`
+    ).join('');
+}
+
+// ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+function lighten(hex, amt) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, (n >> 16) + amt);
+  const g = Math.min(255, ((n >> 8) & 0xff) + amt);
+  const b = Math.min(255, (n & 0xff) + amt);
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+function rrPath(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+function rrFill(ctx, x, y, w, h, r)   { rrPath(ctx, x, y, w, h, r); ctx.fill(); }
+function rrStroke(ctx, x, y, w, h, r) { rrPath(ctx, x, y, w, h, r); ctx.stroke(); }
+
+// ── Start ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nbtn').forEach(btn =>
+  btn.addEventListener('click', () => {
+    initState(parseInt(btn.dataset.n));
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('game').style.display  = 'block';
+    setupCanvas();
+    setDie(null, false);
+    refreshBadge();
+    draw();
+  })
+);
+</script>
+</body>
+</html>
