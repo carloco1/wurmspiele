@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wurmspiele – Dashboard</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --green: #4caf50;
+      --green-dark: #388e3c;
+      --green-glow: rgba(76,175,80,0.35);
+      --bg: #0d0d0d;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #888;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1.5rem;
+    }
+
+    /* ── Animated worm header ── */
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .worm-banner {
+      font-size: 2rem;
+      letter-spacing: 0.05em;
+      line-height: 1.4;
+      color: var(--green);
+      overflow: hidden;
+      white-space: pre;
+      display: inline-block;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      letter-spacing: 0.25em;
+      color: var(--green);
+      text-transform: uppercase;
+      text-shadow: 0 0 18px var(--green-glow);
+      margin-top: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      margin-top: 0.4rem;
+      text-transform: uppercase;
+    }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem 2rem;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .stats-bar span { color: var(--green); font-weight: bold; }
+
+    /* ── Game grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, var(--green-glow), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .card:hover { border-color: var(--green); box-shadow: 0 0 24px var(--green-glow); transform: translateY(-3px); }
+    .card:hover::before { opacity: 1; }
+
+    .card-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: var(--green-dark);
+      color: #fff;
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .card-icon {
+      font-size: 3rem;
+      line-height: 1;
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--green);
+    }
+
+    .card-desc {
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .card-meta {
+      margin-top: auto;
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .play-btn {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.55rem 1.4rem;
+      background: var(--green-dark);
+      color: #fff;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: background 0.2s, box-shadow 0.2s;
+      border: none;
+      cursor: pointer;
+      align-self: flex-start;
+    }
+
+    .play-btn:hover { background: var(--green); box-shadow: 0 0 10px var(--green-glow); }
+
+    /* ── Snake canvas decoration ── */
+    canvas#deco {
+      display: block;
+      margin: 2.5rem auto 0;
+      opacity: 0.18;
+      border-radius: 8px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 3rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="worm-banner" id="wormBanner">▓░░░░░░░░░</div>
+  <h1>Wurmspiele</h1>
+  <p class="subtitle">Wähle dein Spiel &amp; starte die Jagd</p>
+</header>
+
+<div class="stats-bar">
+  <div>Spiele: <span>2</span></div>
+  <div>Plattform: <span>Browser</span></div>
+  <div>Steuerung: <span>Pfeiltasten / WASD</span></div>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="card-badge">Klassisch</div>
+    <div class="card-icon">🐍</div>
+    <div class="card-title">Wurmspiel</div>
+    <div class="card-desc">
+      Der klassische Wurm auf dunklem Terrain.<br>
+      Sammle Futter, werde länger, überlebe so lange wie möglich.
+      Schlichtes Interface – maximale Konzentration.
+    </div>
+    <div class="card-meta">
+      <span class="tag">Dark Mode</span>
+      <span class="tag">Highscore</span>
+      <span class="tag">Keyboard</span>
+    </div>
+    <a class="play-btn" href="wurmspiel.html">▶ Spielen</a>
+  </div>
+
+  <div class="card">
+    <div class="card-badge">Fun Edition</div>
+    <div class="card-icon">🪱</div>
+    <div class="card-title">Da ist der Wurm drin!</div>
+    <div class="card-desc">
+      Bunte, verspielte Variante mit Comic-Charme.<br>
+      Für alle, die ihren Wurm mit Spaß durch den Garten steuern wollen.
+    </div>
+    <div class="card-meta">
+      <span class="tag">Bunt</span>
+      <span class="tag">Comic-Stil</span>
+      <span class="tag">Keyboard</span>
+    </div>
+    <a class="play-btn" href="wurmspiel2.html">▶ Spielen</a>
+  </div>
+
+</div>
+
+<canvas id="deco" width="600" height="80"></canvas>
+
+<footer>
+  &copy; 2026 Wurmspiele &nbsp;·&nbsp; Alle Rechte vorbehalten
+</footer>
+
+<script>
+  // ── Animated worm in header ──
+  (function() {
+    const el = document.getElementById('wormBanner');
+    const frames = [
+      '▓░░░░░░░░░',
+      '░▓░░░░░░░░',
+      '░░▓░░░░░░░',
+      '░░░▓░░░░░░',
+      '░░░░▓░░░░░',
+      '░░░░░▓░░░░',
+      '░░░░░░▓░░░',
+      '░░░░░░░▓░░',
+      '░░░░░░░░▓░',
+      '░░░░░░░░░▓',
+      '░░░░░░░░▓░',
+      '░░░░░░░▓░░',
+      '░░░░░░▓░░░',
+      '░░░░░▓░░░░',
+      '░░░░▓░░░░░',
+      '░░░▓░░░░░░',
+      '░░▓░░░░░░░',
+      '░▓░░░░░░░░',
+    ];
+    let i = 0;
+    setInterval(() => { el.textContent = frames[i++ % frames.length]; }, 90);
+  })();
+
+  // ── Decorative mini-snake canvas at bottom ──
+  (function() {
+    const canvas = document.getElementById('deco');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const CELL = 10;
+    const green = '#4caf50';
+
+    let snake = [];
+    let dir = { x: 1, y: 0 };
+    let food = { x: 30, y: 4 };
+
+    // Init snake
+    for (let k = 8; k >= 0; k--) snake.push({ x: k, y: 4 });
+
+    function rndFood() {
+      food = {
+        x: Math.floor(Math.random() * (W / CELL - 1)) + 1,
+        y: Math.floor(Math.random() * (H / CELL - 1)) + 1,
+      };
+    }
+
+    function step() {
+      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+      // Wrap around
+      head.x = (head.x + W / CELL) % (W / CELL);
+      head.y = (head.y + H / CELL) % (H / CELL);
+
+      // Eat food?
+      const ate = head.x === food.x && head.y === food.y;
+      snake.unshift(head);
+      if (!ate) snake.pop(); else rndFood();
+
+      // Random direction change (weighted: prefer straight)
+      if (Math.random() < 0.08) {
+        const options = [
+          { x: 1, y: 0 }, { x: -1, y: 0 },
+          { x: 0, y: 1 }, { x: 0, y: -1 },
+        ].filter(d => !(d.x === -dir.x && d.y === -dir.y));
+        dir = options[Math.floor(Math.random() * options.length)];
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Food
+      ctx.fillStyle = '#ff7043';
+      ctx.fillRect(food.x * CELL + 1, food.y * CELL + 1, CELL - 2, CELL - 2);
+
+      // Snake
+      snake.forEach((seg, idx) => {
+        const alpha = 1 - idx / (snake.length + 5);
+        ctx.fillStyle = `rgba(76,175,80,${alpha})`;
+        ctx.fillRect(seg.x * CELL + 1, seg.y * CELL + 1, CELL - 2, CELL - 2);
+      });
+    }
+
+    function loop() { step(); draw(); setTimeout(loop, 120); }
+    rndFood();
+    loop();
+  })();
+</script>
+</body>
+</html>
