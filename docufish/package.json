@@ -9,7 +9,9 @@
     "deploy": "forge deploy",
     "install": "forge install",
     "tunnel": "forge tunnel",
-    "test": "jest",
+    "test": "jest --testPathIgnorePatterns=tests/integration",
+    "test:integration": "jest tests/integration",
+    "test:all": "jest",
     "lint": "eslint src/"
   },
   "dependencies": {
