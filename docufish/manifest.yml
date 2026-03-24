@@ -1,0 +1,50 @@
+modules:
+  jira:issuePanel:
+    - key: docufish-panel
+      title: DocuFish Docs
+      icon: https://docufish.io/icon.png
+      layout: basic
+      resource: main
+      resolver:
+        function: resolver
+
+  trigger:
+    - key: issue-done-trigger
+      function: on-issue-transition
+      events:
+        - jira:issue_updated
+
+  confluence:contentBylineItem:
+    - key: docufish-byline
+      title: DocuFish
+      resource: byline
+      resolver:
+        function: resolver
+
+app:
+  id: ari:cloud:ecosystem::app/docufish-dev
+  name: DocuFish
+
+permissions:
+  scopes:
+    - read:jira-work
+    - write:confluence-content
+    - read:confluence-content.all
+    - storage:app
+  external:
+    fetch:
+      backend:
+        - https://api.openai.com
+        - '*.mirofish.local'
+
+resources:
+  - key: main
+    path: src/frontend/index.jsx
+  - key: byline
+    path: src/frontend/byline.jsx
+
+function:
+  - key: resolver
+    handler: src/resolvers/index.handler
+  - key: on-issue-transition
+    handler: src/triggers/issueTransition.handler
