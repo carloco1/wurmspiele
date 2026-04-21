@@ -1,8 +1,22 @@
 """Shared Claude API call used by all SDLC agents."""
+import os
 import anthropic
 from config import MODEL, MAX_TOKENS, EMBEDDED_DOMAIN_PROMPT
 
-_client = anthropic.Anthropic()
+
+def _make_client() -> anthropic.Anthropic:
+    # Standard env var wins
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return anthropic.Anthropic()
+    # Claude Code session token (CLAUDE_SESSION_INGRESS_TOKEN_FILE)
+    token_file = os.environ.get("CLAUDE_SESSION_INGRESS_TOKEN_FILE")
+    if token_file:
+        token = open(token_file).read().strip()
+        return anthropic.Anthropic(auth_token=token)
+    return anthropic.Anthropic()
+
+
+_client = _make_client()
 
 
 def call_agent(
