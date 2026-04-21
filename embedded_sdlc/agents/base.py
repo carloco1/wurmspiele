@@ -1,7 +1,10 @@
 """Shared Claude API call used by all SDLC agents."""
 import os
+import time
 import anthropic
 from config import MODEL, MAX_TOKENS, EMBEDDED_DOMAIN_PROMPT
+
+_RETRY_DELAYS = [30, 60, 120, 240]  # seconds between retries on rate-limit
 
 
 def _make_client() -> anthropic.Anthropic:
@@ -31,31 +34,43 @@ def call_agent(
 
     The EMBEDDED_DOMAIN_PROMPT is marked cache_control=ephemeral so it is
     reused across all agent calls within the same session.
+    Retries automatically on RateLimitError with exponential back-off.
     """
-    collected: list[str] = []
+    for attempt, delay in enumerate([0] + _RETRY_DELAYS):
+        if delay:
+            print(f"\n[rate-limit] waiting {delay}s before retry {attempt}…", flush=True)
+            time.sleep(delay)
+        try:
+            collected: list[str] = []
+            with _client.messages.stream(
+                model=MODEL,
+                max_tokens=max_tokens,
+                thinking={"type": "adaptive"},
+                system=[
+                    {
+                        "type": "text",
+                        "text": EMBEDDED_DOMAIN_PROMPT,
+                        "cache_control": {"type": "ephemeral"},
+                    },
+                    {
+                        "type": "text",
+                        "text": role_prompt,
+                    },
+                ],
+                messages=[{"role": "user", "content": user_prompt}],
+            ) as stream:
+                for text in stream.text_stream:
+                    if stream_output:
+                        print(text, end="", flush=True)
+                    collected.append(text)
 
-    with _client.messages.stream(
-        model=MODEL,
-        max_tokens=max_tokens,
-        thinking={"type": "adaptive"},
-        system=[
-            {
-                "type": "text",
-                "text": EMBEDDED_DOMAIN_PROMPT,
-                "cache_control": {"type": "ephemeral"},   # shared cache anchor
-            },
-            {
-                "type": "text",
-                "text": role_prompt,
-            },
-        ],
-        messages=[{"role": "user", "content": user_prompt}],
-    ) as stream:
-        for text in stream.text_stream:
             if stream_output:
-                print(text, end="", flush=True)
-            collected.append(text)
+                print()
+            return "".join(collected)
 
-    if stream_output:
-        print()  # trailing newline
-    return "".join(collected)
+        except anthropic.RateLimitError:
+            if attempt >= len(_RETRY_DELAYS):
+                raise
+            continue
+
+    raise RuntimeError("Exhausted all retries")

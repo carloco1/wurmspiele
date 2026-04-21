@@ -74,6 +74,16 @@ def run_pipeline(task: str, output_dir: Path) -> dict[str, str]:
     timings: dict[str, float] = {}
 
     for idx, stage in enumerate(STAGE_ORDER, 1):
+        artifact = output_dir / f"{stage}.md"
+
+        # Resume: load existing artefact and skip API call
+        if artifact.exists():
+            context[stage] = artifact.read_text(encoding="utf-8")
+            timings[stage] = 0.0
+            print(f"  ↩  {artifact}  (resumed)\n")
+            print(_progress_bar(idx, total))
+            continue
+
         _banner(stage)
         print(_progress_bar(idx - 1, total))
         print()
@@ -84,7 +94,6 @@ def run_pipeline(task: str, output_dir: Path) -> dict[str, str]:
         timings[stage] = elapsed
 
         context[stage] = result
-        artifact = output_dir / f"{stage}.md"
         artifact.write_text(result, encoding="utf-8")
 
         print(f"\n✓  {artifact}  ({elapsed:.1f}s)\n")
