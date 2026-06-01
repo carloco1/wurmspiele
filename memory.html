@@ -245,6 +245,23 @@
         grid.appendChild(card);
       });
     }
+
+    function onCardClick(event) {
+      if (state.locked) return;
+
+      const card = event.currentTarget;
+      if (card.classList.contains('flipped')) return;
+      if (card.classList.contains('matched')) return;
+
+      card.classList.add('flipped');
+      state.flippedCards.push(card);
+
+      if (state.flippedCards.length === 2) {
+        state.moves++;
+        document.getElementById('move-counter').textContent = `Züge: ${state.moves}`;
+        checkMatch();
+      }
+    }
   </script>
 </body>
 </html>
