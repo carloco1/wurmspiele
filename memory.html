@@ -379,14 +379,42 @@
       state.locked = false;
       state.cols = cols;
       state.rows = rows;
+      state.currentPlayerIndex = 0;
+      state.players.forEach(p => { p.score = 0; });
 
       document.getElementById('move-counter').textContent = 'Züge: 0';
 
+      renderPlayerBadges();
+
       const chosen = shuffle([...EMOJIS]).slice(0, pairs);
-      const cards = shuffle([...chosen, ...chosen]);
+      const cards  = shuffle([...chosen, ...chosen]);
 
       renderCards(cards, cols);
       showScreen('screen-game');
+    }
+
+    function renderPlayerBadges() {
+      const container = document.getElementById('player-badges');
+      container.innerHTML = '';
+      state.players.forEach((player, i) => {
+        const badge = document.createElement('div');
+        badge.className = 'player-badge' + (i === state.currentPlayerIndex ? ' active' : '');
+        badge.id = `badge-${i}`;
+        if (i === state.currentPlayerIndex) badge.style.background = player.color;
+        badge.textContent = `${player.icon} ${player.name} 0`;
+        container.appendChild(badge);
+      });
+    }
+
+    function updatePlayerBadges() {
+      state.players.forEach((player, i) => {
+        const badge = document.getElementById(`badge-${i}`);
+        if (!badge) return;
+        const isActive = i === state.currentPlayerIndex;
+        badge.className = 'player-badge' + (isActive ? ' active' : '');
+        badge.style.background = isActive ? player.color : '';
+        badge.textContent = `${player.icon} ${player.name} ${player.score}`;
+      });
     }
 
     function renderCards(cards, cols) {
