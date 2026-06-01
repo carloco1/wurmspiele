@@ -167,7 +167,38 @@
   </div>
 
   <script>
-    /* JS kommt in Task 4+ */
+    const EMOJIS = [
+      // Tiere
+      '🐶','🐱','🐸','🦊','🐼','🦁','🐯','🦋','🐢','🦜',
+      // Pflanzen
+      '🌻','🌵','🌴','🍀','🌸','🍄','🌿','🌺','🌲','🎋',
+      // Dinge
+      '🚗','🎈','🎸','🎺','⚽','🎮','🚀','🌈','🎨','🏆'
+    ];
+
+    const state = {
+      moves: 0,
+      flippedCards: [],
+      matchedPairs: 0,
+      totalPairs: 0,
+      locked: false,
+      cols: 4,
+      rows: 4
+    };
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function resetToStart() {
+      state.moves = 0;
+      state.flippedCards = [];
+      state.matchedPairs = 0;
+      state.locked = false;
+      document.getElementById('card-grid').innerHTML = '';
+      showScreen('screen-start');
+    }
   </script>
 </body>
 </html>
