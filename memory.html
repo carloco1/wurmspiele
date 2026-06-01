@@ -303,7 +303,9 @@
       totalPairs: 0,
       locked: false,
       cols: 4,
-      rows: 4
+      rows: 4,
+      players: [],
+      currentPlayerIndex: 0
     };
 
     function showScreen(id) {
@@ -318,6 +320,47 @@
       state.locked = false;
       document.getElementById('card-grid').innerHTML = '';
       showScreen('screen-start');
+    }
+
+    let pendingPlayerCount = 0;
+    let currentSetupIndex  = 0;
+
+    function selectPlayerCount(count) {
+      pendingPlayerCount = count;
+      currentSetupIndex  = 0;
+      state.players      = [];
+      document.getElementById('setup-step1').classList.remove('active');
+      document.getElementById('setup-step2').classList.add('active');
+      document.getElementById('setup-player-title').textContent = 'Spieler 1 einrichten';
+      const input = document.getElementById('player-name-input');
+      input.value = '';
+      input.classList.remove('error');
+      input.focus();
+    }
+
+    function selectGender(gender) {
+      const input = document.getElementById('player-name-input');
+      const name  = input.value.trim();
+      if (!name) {
+        input.classList.add('error');
+        input.focus();
+        return;
+      }
+      input.classList.remove('error');
+
+      const color = gender === 'boy' ? '#42a5f5' : '#e91e8c';
+      const icon  = gender === 'boy' ? '👦' : '👧';
+      state.players.push({ name, gender, icon, color, score: 0 });
+
+      currentSetupIndex++;
+      if (currentSetupIndex < pendingPlayerCount) {
+        document.getElementById('setup-player-title').textContent =
+          `Spieler ${currentSetupIndex + 1} einrichten`;
+        input.value = '';
+        input.focus();
+      } else {
+        showScreen('screen-difficulty');
+      }
     }
 
     function shuffle(array) {
