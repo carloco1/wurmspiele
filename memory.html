@@ -224,9 +224,43 @@
   <!-- Startbildschirm -->
   <div id="screen-start" class="screen active">
     <h1>🧠 Memory</h1>
+    <p>Das klassische Kartenspiel für die ganze Familie!</p>
+    <div class="difficulty-buttons">
+      <button onclick="showScreen('screen-setup')" class="btn btn-easy">🎮 Los geht's!</button>
+    </div>
+  </div>
+
+  <!-- Setup-Screen -->
+  <div id="screen-setup" class="screen">
+    <div id="setup-step1" class="setup-step active">
+      <h1>👥 Spieler</h1>
+      <p>Wie viele Spieler spielen mit?</p>
+      <div class="player-count-buttons">
+        <button onclick="selectPlayerCount(2)" class="btn btn-medium">2</button>
+        <button onclick="selectPlayerCount(3)" class="btn btn-medium">3</button>
+        <button onclick="selectPlayerCount(4)" class="btn btn-medium">4</button>
+        <button onclick="selectPlayerCount(5)" class="btn btn-medium">5</button>
+        <button onclick="selectPlayerCount(6)" class="btn btn-medium">6</button>
+      </div>
+    </div>
+    <div id="setup-step2" class="setup-step">
+      <h1 id="setup-player-title">Spieler 1 einrichten</h1>
+      <p>Wie heißt du?</p>
+      <input id="player-name-input" class="name-input" type="text" maxlength="12" placeholder="Name eingeben" />
+      <p>Bist du ein...?</p>
+      <div class="gender-buttons">
+        <button onclick="selectGender('boy')"  class="btn btn-boy">👦 Junge</button>
+        <button onclick="selectGender('girl')" class="btn btn-girl">👧 Mädchen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schwierigkeits-Screen -->
+  <div id="screen-difficulty" class="screen">
+    <h1>🧠 Memory</h1>
     <p>Wähle eine Schwierigkeitsstufe:</p>
     <div class="difficulty-buttons">
-      <button onclick="startGame(8, 4, 4)" class="btn btn-easy">🌱 Leicht<br><small>8 Paare · 4×4</small></button>
+      <button onclick="startGame(8, 4, 4)"  class="btn btn-easy">🌱 Leicht<br><small>8 Paare · 4×4</small></button>
       <button onclick="startGame(12, 4, 6)" class="btn btn-medium">🌿 Mittel<br><small>12 Paare · 4×6</small></button>
       <button onclick="startGame(18, 6, 6)" class="btn btn-hard">🌳 Schwer<br><small>18 Paare · 6×6</small></button>
     </div>
@@ -235,6 +269,7 @@
   <!-- Spielfeld -->
   <div id="screen-game" class="screen">
     <div class="game-header">
+      <div id="player-badges" class="player-badges"></div>
       <span id="move-counter">Züge: 0</span>
       <button onclick="resetToStart()" class="btn btn-small">↩ Neu</button>
     </div>
@@ -244,9 +279,9 @@
   <!-- Gewinn-Screen -->
   <div id="screen-win" class="screen">
     <div class="win-box">
-      <div class="confetti">🎉</div>
-      <h2>Gewonnen! 🏆</h2>
-      <p id="win-message">Du hast 0 Züge gebraucht!</p>
+      <div class="confetti">🎉🏆🎉</div>
+      <div id="winner-display"></div>
+      <ul id="ranking-list" class="ranking-list"></ul>
       <button onclick="resetToStart()" class="btn btn-easy">🔄 Nochmal spielen</button>
     </div>
   </div>
