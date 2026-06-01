@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧠 Memory</title>
+  <style>
+    /* CSS kommt in Task 3 */
+  </style>
+</head>
+<body>
+
+  <!-- Startbildschirm -->
+  <div id="screen-start" class="screen active">
+    <h1>🧠 Memory</h1>
+    <p>Wähle eine Schwierigkeitsstufe:</p>
+    <div class="difficulty-buttons">
+      <button onclick="startGame(8, 4, 4)" class="btn btn-easy">🌱 Leicht<br><small>8 Paare · 4×4</small></button>
+      <button onclick="startGame(12, 4, 6)" class="btn btn-medium">🌿 Mittel<br><small>12 Paare · 4×6</small></button>
+      <button onclick="startGame(18, 6, 6)" class="btn btn-hard">🌳 Schwer<br><small>18 Paare · 6×6</small></button>
+    </div>
+  </div>
+
+  <!-- Spielfeld -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <span id="move-counter">Züge: 0</span>
+      <button onclick="resetToStart()" class="btn btn-small">↩ Neu</button>
+    </div>
+    <div id="card-grid" class="card-grid"></div>
+  </div>
+
+  <!-- Gewinn-Screen -->
+  <div id="screen-win" class="screen">
+    <div class="win-box">
+      <div class="confetti">🎉</div>
+      <h2>Gewonnen! 🏆</h2>
+      <p id="win-message">Du hast 0 Züge gebraucht!</p>
+      <button onclick="resetToStart()" class="btn btn-easy">🔄 Nochmal spielen</button>
+    </div>
+  </div>
+
+  <script>
+    /* JS kommt in Task 4+ */
+  </script>
+</body>
+</html>
