@@ -318,7 +318,11 @@
       state.flippedCards = [];
       state.matchedPairs = 0;
       state.locked = false;
+      state.players = [];
+      state.currentPlayerIndex = 0;
       document.getElementById('card-grid').innerHTML = '';
+      document.getElementById('setup-step1').classList.add('active');
+      document.getElementById('setup-step2').classList.remove('active');
       showScreen('screen-start');
     }
 
