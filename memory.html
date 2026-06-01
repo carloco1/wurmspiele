@@ -484,10 +484,35 @@
     }
 
     function showWin() {
-      const msg = state.moves === 1
-        ? 'Du hast nur 1 Zug gebraucht! Unglaublich! 🤩'
-        : `Du hast ${state.moves} Züge gebraucht!`;
-      document.getElementById('win-message').textContent = msg;
+      const sorted   = [...state.players].sort((a, b) => b.score - a.score);
+      const maxScore = sorted[0].score;
+      const winners  = sorted.filter(p => p.score === maxScore);
+
+      const winnerDisplay = document.getElementById('winner-display');
+      if (winners.length === 1) {
+        winnerDisplay.innerHTML =
+          `<p class="winner-name" style="color:${winners[0].color}">` +
+          `✨ ${winners[0].icon} ${winners[0].name} hat gewonnen! ✨</p>`;
+      } else {
+        const names = winners.map(w => `${w.icon} ${w.name}`).join(' und ');
+        winnerDisplay.innerHTML =
+          `<p class="winner-name">🤝 Unentschieden!</p>` +
+          `<p style="margin-bottom:12px">${names} — je ${maxScore} Paare</p>`;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      let rankIndex = 0;
+      let prevScore = -1;
+      const list = document.getElementById('ranking-list');
+      list.innerHTML = '';
+      sorted.forEach((player, i) => {
+        if (player.score !== prevScore) { rankIndex = i; prevScore = player.score; }
+        const medal = medals[rankIndex] !== undefined ? medals[rankIndex] : `${rankIndex + 1}.`;
+        const li = document.createElement('li');
+        li.textContent = `${medal} ${player.icon} ${player.name} — ${player.score} Paare`;
+        list.appendChild(li);
+      });
+
       showScreen('screen-win');
     }
   </script>
