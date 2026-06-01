@@ -456,12 +456,15 @@
 
     function checkMatch() {
       const [a, b] = state.flippedCards;
+      const player = state.players[state.currentPlayerIndex];
 
       if (a.dataset.emoji === b.dataset.emoji) {
         a.classList.add('matched');
         b.classList.add('matched');
         state.matchedPairs++;
         state.flippedCards = [];
+        player.score++;
+        updatePlayerBadges();
 
         if (state.matchedPairs === state.totalPairs) {
           setTimeout(showWin, 600);
@@ -472,7 +475,10 @@
           a.classList.remove('flipped');
           b.classList.remove('flipped');
           state.flippedCards = [];
+          state.currentPlayerIndex =
+            (state.currentPlayerIndex + 1) % state.players.length;
           state.locked = false;
+          updatePlayerBadges();
         }, 1000);
       }
     }
