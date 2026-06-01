@@ -262,6 +262,29 @@
         checkMatch();
       }
     }
+
+    function checkMatch() {
+      const [a, b] = state.flippedCards;
+
+      if (a.dataset.emoji === b.dataset.emoji) {
+        a.classList.add('matched');
+        b.classList.add('matched');
+        state.matchedPairs++;
+        state.flippedCards = [];
+
+        if (state.matchedPairs === state.totalPairs) {
+          setTimeout(showWin, 600);
+        }
+      } else {
+        state.locked = true;
+        setTimeout(() => {
+          a.classList.remove('flipped');
+          b.classList.remove('flipped');
+          state.flippedCards = [];
+          state.locked = false;
+        }, 1000);
+      }
+    }
   </script>
 </body>
 </html>
