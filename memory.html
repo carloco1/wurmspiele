@@ -199,6 +199,52 @@
       document.getElementById('card-grid').innerHTML = '';
       showScreen('screen-start');
     }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startGame(pairs, cols, rows) {
+      state.moves = 0;
+      state.flippedCards = [];
+      state.matchedPairs = 0;
+      state.totalPairs = pairs;
+      state.locked = false;
+      state.cols = cols;
+      state.rows = rows;
+
+      document.getElementById('move-counter').textContent = 'Züge: 0';
+
+      const chosen = shuffle([...EMOJIS]).slice(0, pairs);
+      const cards = shuffle([...chosen, ...chosen]);
+
+      renderCards(cards, cols);
+      showScreen('screen-game');
+    }
+
+    function renderCards(cards, cols) {
+      const grid = document.getElementById('card-grid');
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+
+      cards.forEach((emoji, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.emoji = emoji;
+        card.dataset.index = index;
+        card.innerHTML = `
+          <div class="card-inner">
+            <div class="card-back">❓</div>
+            <div class="card-front">${emoji}</div>
+          </div>`;
+        card.addEventListener('click', onCardClick);
+        grid.appendChild(card);
+      });
+    }
   </script>
 </body>
 </html>
