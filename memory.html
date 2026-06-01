@@ -285,6 +285,14 @@
         }, 1000);
       }
     }
+
+    function showWin() {
+      const msg = state.moves === 1
+        ? 'Du hast nur 1 Zug gebraucht! Unglaublich! 🤩'
+        : `Du hast ${state.moves} Züge gebraucht!`;
+      document.getElementById('win-message').textContent = msg;
+      showScreen('screen-win');
+    }
   </script>
 </body>
 </html>
