@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocuFish — Workflow Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3e;
+      --accent:    #4f8ef7;
+      --green:     #3ecf8e;
+      --yellow:    #f5a623;
+      --red:       #f05252;
+      --purple:    #a78bfa;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo { font-size: 28px; }
+    header h1 { font-size: 22px; font-weight: 700; }
+    header span { color: var(--muted); font-size: 14px; margin-left: 8px; }
+
+    /* Layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Panel */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* Ticket form */
+    .field { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:hover { opacity: .9; }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Right column */
+    .right { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Pipeline */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .pipe-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 20px;
+      padding-top: 40px;
+    }
+
+    /* Step card */
+    .step-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      transition: border-color .3s, box-shadow .3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .step-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent)33, 0 4px 24px var(--accent)22;
+    }
+    .step-card.done { border-color: var(--green); }
+    .step-card.done .step-icon { color: var(--green); }
+
+    .step-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+    .step-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+    .step-name { font-size: 14px; font-weight: 600; margin: 4px 0 8px; }
+    .step-status {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      display: inline-block;
+      background: var(--border);
+      color: var(--muted);
+    }
+    .step-status.running { background: var(--accent)22; color: var(--accent); }
+    .step-status.done    { background: var(--green)22;  color: var(--green); }
+
+    /* Pulse animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .4; }
+    }
+    .pulsing { animation: pulse 1.2s ease-in-out infinite; }
+
+    /* Shimmer line */
+    .shimmer {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 2px;
+      margin-top: 10px;
+      display: none;
+    }
+    .shimmer.visible { display: block; }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+    /* Agents grid */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .agent-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      transition: border-color .3s;
+    }
+    .agent-card.active { border-color: var(--yellow); }
+    .agent-card.done   { border-color: var(--green); }
+
+    .agent-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .agent-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      background: var(--border);
+    }
+    .agent-name { font-size: 13px; font-weight: 600; }
+    .agent-role { font-size: 11px; color: var(--muted); }
+
+    .gap-list { list-style: none; margin-top: 8px; }
+    .gap-item {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: opacity .3s, transform .3s;
+    }
+    .gap-item.visible { opacity: 1; transform: none; }
+    .gap-item:last-child { border-bottom: none; }
+    .gap-dot { color: var(--yellow); flex-shrink: 0; }
+
+    /* Aggregation */
+    .agg-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .agg-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .agg-box-title { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+    .agg-tag {
+      display: inline-block;
+      background: var(--accent)18;
+      color: var(--accent);
+      border: 1px solid var(--accent)33;
+      border-radius: 20px;
+      font-size: 11px;
+      padding: 2px 8px;
+      margin: 2px;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .agg-tag.visible { opacity: 1; }
+    .agg-count {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--yellow);
+    }
+    .agg-count small { font-size: 13px; color: var(--muted); }
+
+    /* Doc output */
+    .doc-output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 12px;
+      font-family: 'Menlo', monospace;
+      color: #94a3b8;
+      max-height: 220px;
+      overflow-y: auto;
+      line-height: 1.6;
+      opacity: 0;
+      transition: opacity .5s;
+    }
+    .doc-output.visible { opacity: 1; }
+    .doc-output .tag   { color: #7dd3fc; }
+    .doc-output .attr  { color: #a5b4fc; }
+    .doc-output .value { color: var(--green); }
+    .doc-output .text  { color: #e2e8f0; }
+
+    /* Metrics bar */
+    .metrics {
+      display: flex;
+      gap: 16px;
+    }
+    .metric {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .metric-val { font-size: 26px; font-weight: 700; color: var(--accent); }
+    .metric-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* Log */
+    .log {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--muted);
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .log-entry { padding: 2px 0; }
+    .log-entry.info  { color: var(--accent); }
+    .log-entry.ok    { color: var(--green); }
+    .log-entry.warn  { color: var(--yellow); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🐟</span>
+  <div>
+    <h1>DocuFish <span>Workflow Dashboard</span></h1>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Ticket Input -->
+  <aside>
+    <div class="panel">
+      <div class="panel-title">Jira Ticket</div>
+
+      <div class="field">
+        <label>Ticket Key</label>
+        <input id="ticketKey" value="PROJ-137" />
+      </div>
+      <div class="field">
+        <label>Zusammenfassung</label>
+        <input id="ticketTitle" value="Passwort-Reset per E-Mail implementieren" />
+      </div>
+      <div class="field">
+        <label>Beschreibung</label>
+        <textarea id="ticketDesc" rows="4">Implementiere einen sicheren Passwort-Reset-Flow: Reset-Link gültig 15 Minuten, Token einmalig verwendbar, Rate Limiting max 3 Anfragen/Stunde.</textarea>
+      </div>
+      <div class="field">
+        <label>Acceptance Criteria</label>
+        <textarea id="ticketAC" rows="3">- Link läuft nach 15 Min ab
+- Token nur einmal nutzbar
+- Bei unbekannter E-Mail keine Fehlermeldung</textarea>
+      </div>
+
+      <button class="btn" id="runBtn" onclick="runSimulation()">
+        ▶ Simulation starten
+      </button>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-title">Log</div>
+      <div class="log" id="logBox"></div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Workflow -->
+  <div class="right">
+
+    <!-- Metrics -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-val" id="mGaps">—</div>
+        <div class="metric-label">Lücken gefunden</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="mSections">—</div>
+        <div class="metric-label">Doc Sections</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="mAgents">0/3</div>
+        <div class="metric-label">Agenten fertig</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="mStatus">Idle</div>
+        <div class="metric-label">Status</div>
+      </div>
+    </div>
+
+    <!-- Pipeline steps -->
+    <div class="panel">
+      <div class="panel-title">Pipeline</div>
+      <div class="pipeline">
+        <div class="step-card" id="step-ticket">
+          <span class="step-icon">📋</span>
+          <div class="step-label">Input</div>
+          <div class="step-name">Jira Ticket</div>
+          <span class="step-status" id="ss-ticket">Bereit</span>
+          <div class="shimmer" id="sh-ticket"></div>
+        </div>
+
+        <div class="step-card" id="step-agents">
+          <span class="step-icon">🤖</span>
+          <div class="step-label">Simulation</div>
+          <div class="step-name">MiroFish Agenten</div>
+          <span class="step-status" id="ss-agents">Wartend</span>
+          <div class="shimmer" id="sh-agents"></div>
+        </div>
+
+        <div class="step-card" id="step-agg">
+          <span class="step-icon">🔀</span>
+          <div class="step-label">Aggregation</div>
+          <div class="step-name">Feedback Merge</div>
+          <span class="step-status" id="ss-agg">Wartend</span>
+          <div class="shimmer" id="sh-agg"></div>
+        </div>
+
+        <div class="step-card" id="step-doc">
+          <span class="step-icon">📄</span>
+          <div class="step-label">Output</div>
+          <div class="step-name">Confluence Seite</div>
+          <span class="step-status" id="ss-doc">Wartend</span>
+          <div class="shimmer" id="sh-doc"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agents -->
+    <div class="panel">
+      <div class="panel-title">Agenten — Parallel Simulation</div>
+      <div class="agents-grid">
+
+        <div class="agent-card" id="agent-junior">
+          <div class="agent-header">
+            <div class="agent-avatar">👶</div>
+            <div>
+              <div class="agent-name">Junior Developer</div>
+              <div class="agent-role">Findet fehlenden Kontext</div>
+            </div>
+          </div>
+          <ul class="gap-list" id="gaps-junior"></ul>
+        </div>
+
+        <div class="agent-card" id="agent-arch">
+          <div class="agent-header">
+            <div class="agent-avatar">🏗️</div>
+            <div>
+              <div class="agent-name">Software Architect</div>
+              <div class="agent-role">Prüft techn. Vollständigkeit</div>
+            </div>
+          </div>
+          <ul class="gap-list" id="gaps-arch"></ul>
+        </div>
+
+        <div class="agent-card" id="agent-pm">
+          <div class="agent-header">
+            <div class="agent-avatar">📊</div>
+            <div>
+              <div class="agent-name">Product Manager</div>
+              <div class="agent-role">Prüft Business-Kontext</div>
+            </div>
+          </div>
+          <ul class="gap-list" id="gaps-pm"></ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Aggregation + Doc -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+      <div class="panel">
+        <div class="panel-title">Aggregiertes Feedback</div>
+        <div class="agg-grid">
+          <div class="agg-box">
+            <div class="agg-box-title">Lücken</div>
+            <div class="agg-count" id="aggGapCount">0 <small>gaps</small></div>
+          </div>
+          <div class="agg-box">
+            <div class="agg-box-title">Vorgeschlagene Sections</div>
+            <div id="aggSections"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Confluence Output</div>
+        <div class="doc-output" id="docOutput">
+          <span style="color:var(--muted)">Warten auf Generierung…</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Mock data (same as simulate.js)
+// ---------------------------------------------------------------------------
+const MOCK_RESPONSES = {
+  junior: {
+    gaps: [
+      "Was passiert bei mehrfachen Reset-Anfragen?",
+      "Welches E-Mail-Template wird genutzt?",
+      "Wird Nutzer nach Reset auto-eingeloggt?",
+    ],
+    sections: ["Übersicht", "Schritt-für-Schritt Flow", "Fehlerfälle", "FAQ"],
+  },
+  arch: {
+    gaps: [
+      "Token-Speicherung: DB vs. Cache/Redis?",
+      "HTTPS-Pflicht für Reset-Links fehlt",
+      "Token-Format nicht definiert (JWT vs. UUID)",
+    ],
+    sections: ["Technisches Design", "API Endpoints", "Security", "Datenbankschema"],
+  },
+  pm: {
+    gaps: [
+      "Kein Rollout-Plan / Feature Flag erwähnt",
+      "Fehlende UX für abgelaufene Links",
+    ],
+    sections: ["Business Context", "Nutzer-Impact", "Deployment Notes"],
+  },
+};
+
+const MOCK_DOC = `<span class="tag">&lt;h2&gt;</span><span class="text">Übersicht</span><span class="tag">&lt;/h2&gt;</span>
+<span class="tag">&lt;p&gt;</span><span class="text">Sicherer Passwort-Reset-Flow für PROJ-137.</span><span class="tag">&lt;/p&gt;</span>
+
+<span class="tag">&lt;h2&gt;</span><span class="text">API Endpoints</span><span class="tag">&lt;/h2&gt;</span>
+<span class="tag">&lt;code&gt;</span><span class="value">POST /api/auth/reset-request</span><span class="tag">&lt;/code&gt;</span>
+<span class="tag">&lt;code&gt;</span><span class="value">POST /api/auth/reset-confirm</span><span class="tag">&lt;/code&gt;</span>
+
+<span class="tag">&lt;h2&gt;</span><span class="text">Security</span><span class="tag">&lt;/h2&gt;</span>
+<span class="tag">&lt;ul&gt;</span>
+  <span class="tag">&lt;li&gt;</span><span class="text">crypto.randomBytes(32) für Token</span><span class="tag">&lt;/li&gt;</span>
+  <span class="tag">&lt;li&gt;</span><span class="text">SHA-256 Hash in DB speichern</span><span class="tag">&lt;/li&gt;</span>
+  <span class="tag">&lt;li&gt;</span><span class="text">Rate Limit: 3 req/h per E-Mail + IP</span><span class="tag">&lt;/li&gt;</span>
+<span class="tag">&lt;/ul&gt;</span>
+
+<span class="tag">&lt;h2&gt;</span><span class="text">Fehlerfälle</span><span class="tag">&lt;/h2&gt;</span>
+<span class="tag">&lt;table&gt;</span>
+  <span class="tag">&lt;tr&gt;&lt;td&gt;</span><span class="text">Unbekannte E-Mail</span><span class="tag">&lt;/td&gt;&lt;td&gt;</span><span class="value">Gleiche Antwort (Security)</span><span class="tag">&lt;/td&gt;&lt;/tr&gt;</span>
+  <span class="tag">&lt;tr&gt;&lt;td&gt;</span><span class="text">Abgelaufener Token</span><span class="tag">&lt;/td&gt;&lt;td&gt;</span><span class="value">Neuen Link anfordern</span><span class="tag">&lt;/td&gt;&lt;/tr&gt;</span>
+<span class="tag">&lt;/table&gt;</span>`;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+let logEl, runBtn;
+
+function log(msg, type = 'info') {
+  if (!logEl) logEl = document.getElementById('logBox');
+  const d = document.createElement('div');
+  d.className = `log-entry ${type}`;
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setStep(id, state, label) {
+  const card = document.getElementById(`step-${id}`);
+  const status = document.getElementById(`ss-${id}`);
+  const shimmer = document.getElementById(`sh-${id}`);
+  card.className = `step-card ${state}`;
+  status.className = `step-status ${state}`;
+  status.textContent = label;
+  shimmer.className = `shimmer ${state === 'active' ? 'visible' : ''}`;
+}
+
+function setAgent(id, state) {
+  document.getElementById(`agent-${id}`).className = `agent-card ${state}`;
+}
+
+async function addGaps(elId, gaps, delay = 300) {
+  const ul = document.getElementById(elId);
+  ul.innerHTML = '';
+  for (const g of gaps) {
+    const li = document.createElement('li');
+    li.className = 'gap-item';
+    li.innerHTML = `<span class="gap-dot">•</span>${g}`;
+    ul.appendChild(li);
+    await sleep(delay);
+    li.classList.add('visible');
+  }
+}
+
+function addSectionTags(sections) {
+  const el = document.getElementById('aggSections');
+  el.innerHTML = '';
+  sections.forEach((s, i) => {
+    const tag = document.createElement('span');
+    tag.className = 'agg-tag';
+    tag.textContent = s;
+    el.appendChild(tag);
+    setTimeout(() => tag.classList.add('visible'), i * 80);
+  });
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function setMetric(id, val) {
+  document.getElementById(id).textContent = val;
+}
+
+// ---------------------------------------------------------------------------
+// Simulation
+// ---------------------------------------------------------------------------
+async function runSimulation() {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('docOutput').classList.remove('visible');
+  document.getElementById('docOutput').innerHTML = '<span style="color:var(--muted)">Warten auf Generierung…</span>';
+  document.getElementById('aggSections').innerHTML = '';
+  document.getElementById('aggGapCount').innerHTML = '0 <small>gaps</small>';
+  ['junior','arch','pm'].forEach(a => {
+    document.getElementById(`gaps-${a}`).innerHTML = '';
+    setAgent(a, '');
+  });
+  setMetric('mGaps', '—');
+  setMetric('mSections', '—');
+  setMetric('mAgents', '0/3');
+  setMetric('mStatus', 'Running');
+
+  const key   = document.getElementById('ticketKey').value;
+  const title = document.getElementById('ticketTitle').value;
+
+  // Step 1: Ticket
+  log(`Ticket geladen: [${key}] ${title}`);
+  setStep('ticket', 'active', 'Lädt…');
+  await sleep(600);
+  setStep('ticket', 'done', '✓ Geladen');
+
+  // Step 2: Agents (parallel)
+  log('MiroFish Simulation startet (3 Agenten parallel)…');
+  setStep('agents', 'active', 'Simuliert…');
+  setAgent('junior', 'active');
+  setAgent('arch',   'active');
+  setAgent('pm',     'active');
+
+  // Simulate agents in parallel with staggered gap reveals
+  const agentDone = [false, false, false];
+
+  const juniorP = (async () => {
+    await sleep(400);
+    log('Agent Junior Developer analysiert…', 'info');
+    await addGaps('gaps-junior', MOCK_RESPONSES.junior.gaps, 350);
+    setAgent('junior', 'done');
+    agentDone[0] = true;
+    setMetric('mAgents', `${agentDone.filter(Boolean).length}/3`);
+    log('Junior Developer: fertig', 'ok');
+  })();
+
+  const archP = (async () => {
+    await sleep(700);
+    log('Agent Architect analysiert…', 'info');
+    await addGaps('gaps-arch', MOCK_RESPONSES.arch.gaps, 380);
+    setAgent('arch', 'done');
+    agentDone[1] = true;
+    setMetric('mAgents', `${agentDone.filter(Boolean).length}/3`);
+    log('Architect: fertig', 'ok');
+  })();
+
+  const pmP = (async () => {
+    await sleep(550);
+    log('Agent Product Manager analysiert…', 'info');
+    await addGaps('gaps-pm', MOCK_RESPONSES.pm.gaps, 420);
+    setAgent('pm', 'done');
+    agentDone[2] = true;
+    setMetric('mAgents', `${agentDone.filter(Boolean).length}/3`);
+    log('Product Manager: fertig', 'ok');
+  })();
+
+  await Promise.all([juniorP, archP, pmP]);
+  setStep('agents', 'done', '✓ Fertig');
+
+  // Step 3: Aggregation
+  await sleep(400);
+  log('Feedback wird aggregiert…');
+  setStep('agg', 'active', 'Aggregiert…');
+
+  const allGaps = [
+    ...MOCK_RESPONSES.junior.gaps,
+    ...MOCK_RESPONSES.arch.gaps,
+    ...MOCK_RESPONSES.pm.gaps,
+  ];
+  const allSections = [...new Set([
+    ...MOCK_RESPONSES.junior.sections,
+    ...MOCK_RESPONSES.arch.sections,
+    ...MOCK_RESPONSES.pm.sections,
+  ])];
+
+  // Animate gap counter
+  for (let i = 1; i <= allGaps.length; i++) {
+    document.getElementById('aggGapCount').innerHTML = `${i} <small>gaps</small>`;
+    await sleep(120);
+  }
+
+  addSectionTags(allSections);
+  setMetric('mGaps', allGaps.length);
+  setMetric('mSections', allSections.length);
+  await sleep(600);
+  setStep('agg', 'done', '✓ Fertig');
+  log(`Aggregation: ${allGaps.length} Lücken, ${allSections.length} Sections`, 'ok');
+
+  // Step 4: Doc generation
+  await sleep(400);
+  log('Confluence-Seite wird generiert…');
+  setStep('doc', 'active', 'Generiert…');
+  await sleep(1200);
+
+  const docEl = document.getElementById('docOutput');
+  docEl.innerHTML = MOCK_DOC;
+  docEl.classList.add('visible');
+  setStep('doc', 'done', '✓ Erstellt');
+
+  setMetric('mStatus', '✓ Done');
+  log(`Seite erstellt: [DocuFish] ${title}`, 'ok');
+  log('Simulation abgeschlossen.', 'ok');
+
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
